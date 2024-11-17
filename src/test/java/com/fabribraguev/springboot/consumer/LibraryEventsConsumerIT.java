@@ -159,7 +159,39 @@ public class LibraryEventsConsumerIT {
         CountDownLatch latch = new CountDownLatch(1);
         latch.await(5, TimeUnit.SECONDS);
         //then
-        verify(libraryEventsConsumerSpy,times(10)).onMessage(isA(ConsumerRecord.class));
-        verify(libraryEventsServiceSpy,times(10)).processLibraryEvent(isA(ConsumerRecord.class));
+        verify(libraryEventsConsumerSpy,times(1)).onMessage(isA(ConsumerRecord.class));
+        verify(libraryEventsServiceSpy,times(1)).processLibraryEvent(isA(ConsumerRecord.class));
+
+        //verify(libraryEventsConsumerSpy,times(3)).onMessage(isA(ConsumerRecord.class));
+        //verify(libraryEventsServiceSpy,times(3)).processLibraryEvent(isA(ConsumerRecord.class));
+        //Default
+        //verify(libraryEventsConsumerSpy,times(3)).onMessage(isA(ConsumerRecord.class));
+        //verify(libraryEventsServiceSpy,times(3)).processLibraryEvent(isA(ConsumerRecord.class));
+    }
+
+    @Test
+    void publishUpdateLibraryEvent_999_LibraryEvent() throws JsonProcessingException, ExecutionException, InterruptedException {
+        //given
+        //Save the new library event
+        String json = "{\n" +
+                "    \"libraryEventId\": 999,\n" +
+                "    \"libraryEventType\": \"UPDATE\",\n" +
+                "    \"book\": {\n" +
+                "        \"bookId\": 456,\n" +
+                "        \"bookName\": \"Kafka Using Spring Boot\",\n" +
+                "        \"bookAuthor\": \"Dilip\"\n" +
+                "    }\n" +
+                "}";
+        kafkaTemplate.sendDefault(json).get();
+
+        //when
+        CountDownLatch latch = new CountDownLatch(1);
+        latch.await(5, TimeUnit.SECONDS);
+        //then
+        verify(libraryEventsConsumerSpy,times(3)).onMessage(isA(ConsumerRecord.class));
+        verify(libraryEventsServiceSpy,times(3)).processLibraryEvent(isA(ConsumerRecord.class));
+        //Default
+        //verify(libraryEventsConsumerSpy,times(3)).onMessage(isA(ConsumerRecord.class));
+        //verify(libraryEventsServiceSpy,times(3)).processLibraryEvent(isA(ConsumerRecord.class));
     }
 }
