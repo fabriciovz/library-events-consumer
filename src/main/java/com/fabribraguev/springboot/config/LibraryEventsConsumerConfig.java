@@ -1,6 +1,9 @@
 package com.fabribraguev.springboot.config;
 
+import com.fabribraguev.springboot.service.FailureService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,14 +30,23 @@ import java.util.List;
 @EnableKafka
 @Slf4j
 public class LibraryEventsConsumerConfig {
+
+    public static final String RETRY = "RETRY";
+    public static final String DEAD = "DEAD";
+
+
     @Autowired
     KafkaTemplate kafkaTemplate;
+
+    @Autowired
+    FailureService failureService;
 
     @Value("${topics.retry}")
     private String retryTopic;
 
     @Value("${topics.dlt}")
     private String deadLetterTopic;
+
 
     public DeadLetterPublishingRecoverer publishingRecoverer(){
 
@@ -51,6 +63,22 @@ public class LibraryEventsConsumerConfig {
         return recoverer;
     }
 
+    ConsumerRecordRecoverer consumerRecordRecoverer = (consumerRecord, e) -> {
+        log.error("Exception in publishingRecoverer: {} ",e.getMessage(),e);
+        var record = (ConsumerRecord<Integer,String>)consumerRecord;
+        if (e.getCause() instanceof RecoverableDataAccessException) {
+            //Recovery logic
+            log.error("Inside recovery");
+            failureService.saveFailedRecord(record,e,RETRY);
+        }
+        else {
+            //Non recovery logic
+            log.error("Inside non-recovery");
+            failureService.saveFailedRecord(record,e,DEAD);
+
+        }
+
+    };
     public DefaultErrorHandler errorHandler() {
 
 
@@ -73,7 +101,8 @@ public class LibraryEventsConsumerConfig {
         2024-11-17 14:55:36.581   */
 
         var defaultErrorHandler = new DefaultErrorHandler(
-                publishingRecoverer(),
+                //publishingRecoverer(), this is for approach 1
+                consumerRecordRecoverer, //this is for approach 2
                 //fixedBackOff
                 expBackOff
         );
