@@ -40,6 +40,7 @@ public class LibraryEventsConsumerConfig {
 
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
                 (r, e) -> {
+                    log.error("Exception in publishingRecoverer: {} ",e.getMessage(),e);
                     if (e.getCause() instanceof RecoverableDataAccessException) {
                         return new TopicPartition(retryTopic, r.partition());
                     }
@@ -52,13 +53,13 @@ public class LibraryEventsConsumerConfig {
 
     public DefaultErrorHandler errorHandler() {
 
-        /*
+
         var exceptionToIgnoreList = List.of(
                 IllegalArgumentException.class
-        );*/
-        var exceptionToRetryList = List.of(
-                RecoverableDataAccessException.class
         );
+        /*var exceptionToRetryList = List.of(
+                RecoverableDataAccessException.class
+        );*/
 
         //var fixedBackOff = new FixedBackOff(1000L, 2L);  //Retry the record twice once second (1000ms) in between (2 + 1 (the original attempt)
 
@@ -76,8 +77,8 @@ public class LibraryEventsConsumerConfig {
                 //fixedBackOff
                 expBackOff
         );
-        //exceptionToIgnoreList.forEach(defaultErrorHandler::addNotRetryableExceptions);
-        exceptionToRetryList.forEach(defaultErrorHandler::addRetryableExceptions);
+        exceptionToIgnoreList.forEach(defaultErrorHandler::addNotRetryableExceptions);
+        //exceptionToRetryList.forEach(defaultErrorHandler::addRetryableExceptions);
 
         //You can hide this in prod environment
         defaultErrorHandler.setRetryListeners(((consumerRecord, exception, deliveryAttempt) -> {
