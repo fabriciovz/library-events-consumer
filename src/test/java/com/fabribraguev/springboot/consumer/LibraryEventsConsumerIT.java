@@ -45,9 +45,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @SpringBootTest
-@EmbeddedKafka(topics = {"library-events","library-events.RETRY","library-events.DLT"}, partitions = 1)
+@EmbeddedKafka(topics = {"library-events"}, partitions = 1)
 @TestPropertySource(properties = {"spring.kafka.producer.bootstrap-servers=${spring.embedded.kafka.brokers}",
-        "spring.kafka.consumer.bootstrap-servers=${spring.embedded.kafka.brokers}","retryListener.startup=false"})
+        "spring.kafka.consumer.bootstrap-servers=${spring.embedded.kafka.brokers}"})
 public class LibraryEventsConsumerIT {
 
     @Autowired
@@ -76,12 +76,6 @@ public class LibraryEventsConsumerIT {
 
     private Consumer<Integer, String> consumer;
 
-    @Value("${topics.retry}")
-    private String retryTopic;
-
-    @Value("${topics.dlt}")
-    private String deadLetterTopic;
-
 
     @BeforeEach
     void setUp(){
@@ -97,6 +91,7 @@ public class LibraryEventsConsumerIT {
     @AfterEach
     void tearDown() {
         libraryEventsRepository.deleteAll();
+        failureRecordRepository.deleteAll();
     }
 
     @Test
