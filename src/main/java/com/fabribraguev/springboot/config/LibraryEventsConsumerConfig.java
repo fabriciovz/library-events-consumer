@@ -33,7 +33,7 @@ public class LibraryEventsConsumerConfig {
 
     public static final String RETRY = "RETRY";
     public static final String DEAD = "DEAD";
-
+    public static final String SUCCESS = "SUCCESS";
 
     @Autowired
     KafkaTemplate kafkaTemplate;
@@ -41,27 +41,6 @@ public class LibraryEventsConsumerConfig {
     @Autowired
     FailureService failureService;
 
-    @Value("${topics.retry}")
-    private String retryTopic;
-
-    @Value("${topics.dlt}")
-    private String deadLetterTopic;
-
-
-    public DeadLetterPublishingRecoverer publishingRecoverer(){
-
-        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
-                (r, e) -> {
-                    log.error("Exception in publishingRecoverer: {} ",e.getMessage(),e);
-                    if (e.getCause() instanceof RecoverableDataAccessException) {
-                        return new TopicPartition(retryTopic, r.partition());
-                    }
-                    else {
-                        return new TopicPartition(deadLetterTopic, r.partition());
-                    }
-                });
-        return recoverer;
-    }
 
     ConsumerRecordRecoverer consumerRecordRecoverer = (consumerRecord, e) -> {
         log.error("Exception in publishingRecoverer: {} ",e.getMessage(),e);
@@ -85,12 +64,6 @@ public class LibraryEventsConsumerConfig {
         var exceptionToIgnoreList = List.of(
                 IllegalArgumentException.class
         );
-        /*var exceptionToRetryList = List.of(
-                RecoverableDataAccessException.class
-        );*/
-
-        //var fixedBackOff = new FixedBackOff(1000L, 2L);  //Retry the record twice once second (1000ms) in between (2 + 1 (the original attempt)
-
         var expBackOff = new ExponentialBackOffWithMaxRetries(2);
         expBackOff.setInitialInterval(1_000L);
         expBackOff.setMultiplier(2.0);
@@ -101,7 +74,6 @@ public class LibraryEventsConsumerConfig {
         2024-11-17 14:55:36.581   */
 
         var defaultErrorHandler = new DefaultErrorHandler(
-                //publishingRecoverer(), this is for approach 1
                 consumerRecordRecoverer, //this is for approach 2
                 //fixedBackOff
                 expBackOff

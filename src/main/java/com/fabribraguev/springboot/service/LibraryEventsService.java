@@ -41,8 +41,6 @@ public class LibraryEventsService {
             default:
                 log.info("Invalid Library Event Type");
         }
-
-
     }
 
     private void validate(LibraryEvent libraryEvent) {

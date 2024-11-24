@@ -1,7 +1,10 @@
 package com.fabribraguev.springboot.jpa;
 
-import com.fabribraguev.springboot.entity.FailedRecord;
+import com.fabribraguev.springboot.entity.FailureRecord;
 import org.springframework.data.repository.CrudRepository;
 
-public interface FailureRecordRepository extends CrudRepository<FailedRecord,Integer> {
+import java.util.List;
+
+public interface FailureRecordRepository extends CrudRepository<FailureRecord,Integer> {
+    List<FailureRecord> findAllByStatus(String status);
 }

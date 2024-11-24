@@ -14,7 +14,7 @@ import javax.persistence.Id;
 @NoArgsConstructor
 @Data
 @Builder
-public class FailedRecord   {
+public class FailureRecord {
     @Id
     @GeneratedValue
     private Integer id;

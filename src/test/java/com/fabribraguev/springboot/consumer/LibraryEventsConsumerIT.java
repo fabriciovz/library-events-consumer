@@ -165,46 +165,6 @@ public class LibraryEventsConsumerIT {
     }
 
     @Test
-    void publishUpdateLibraryEvent_null_LibraryEvent() throws JsonProcessingException, ExecutionException, InterruptedException {
-        //given
-        //Save the new library event
-        String json = "{\n" +
-                "    \"libraryEventId\": null,\n" +
-                "    \"libraryEventType\": \"UPDATE\",\n" +
-                "    \"book\": {\n" +
-                "        \"bookId\": 456,\n" +
-                "        \"bookName\": \"Kafka Using Spring Boot\",\n" +
-                "        \"bookAuthor\": \"Dilip\"\n" +
-                "    }\n" +
-                "}";
-        kafkaTemplate.sendDefault(json).get();
-
-        //when
-        CountDownLatch latch = new CountDownLatch(1);
-        latch.await(5, TimeUnit.SECONDS);
-        //then
-        verify(libraryEventsConsumerSpy,times(1)).onMessage(isA(ConsumerRecord.class));
-        verify(libraryEventsServiceSpy,times(1)).processLibraryEvent(isA(ConsumerRecord.class));
-
-
-        HashMap<String, Object> configs = new HashMap<>(KafkaTestUtils.consumerProps("group2", "true", embeddedKafkaBroker));
-        configs.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"latest");
-        consumer = new DefaultKafkaConsumerFactory<>(configs,new IntegerDeserializer(),new StringDeserializer()).createConsumer();
-        embeddedKafkaBroker.consumeFromAnEmbeddedTopic(consumer,deadLetterTopic);
-
-        ConsumerRecord<Integer,String> consumerRecord = KafkaTestUtils.getSingleRecord(consumer,deadLetterTopic);
-
-        System.out.println("consumer record is: " + consumerRecord.value());
-        assertEquals(json,consumerRecord.value());
-
-        //verify(libraryEventsConsumerSpy,times(3)).onMessage(isA(ConsumerRecord.class));
-        //verify(libraryEventsServiceSpy,times(3)).processLibraryEvent(isA(ConsumerRecord.class));
-        //Default
-        //verify(libraryEventsConsumerSpy,times(3)).onMessage(isA(ConsumerRecord.class));
-        //verify(libraryEventsServiceSpy,times(3)).processLibraryEvent(isA(ConsumerRecord.class));
-    }
-
-    @Test
     void publishUpdateLibraryEvent_null_LibraryEvent_failureRecord() throws JsonProcessingException, ExecutionException, InterruptedException {
         //given
         //Save the new library event
@@ -229,18 +189,12 @@ public class LibraryEventsConsumerIT {
         var count= failureRecordRepository.count();
 
         assertEquals(1, count);
+        assertEquals(1, failureRecordRepository.findAllByStatus("DEAD").size());
 
         failureRecordRepository.findAll()
                 .forEach(failedRecord -> {
                     System.out.println("Failure record : " + failedRecord);
                 });
-
-
-        //verify(libraryEventsConsumerSpy,times(3)).onMessage(isA(ConsumerRecord.class));
-        //verify(libraryEventsServiceSpy,times(3)).processLibraryEvent(isA(ConsumerRecord.class));
-        //Default
-        //verify(libraryEventsConsumerSpy,times(3)).onMessage(isA(ConsumerRecord.class));
-        //verify(libraryEventsServiceSpy,times(3)).processLibraryEvent(isA(ConsumerRecord.class));
     }
 
     @Test
@@ -265,15 +219,13 @@ public class LibraryEventsConsumerIT {
         verify(libraryEventsConsumerSpy,times(3)).onMessage(isA(ConsumerRecord.class));
         verify(libraryEventsServiceSpy,times(3)).processLibraryEvent(isA(ConsumerRecord.class));
 
+        var count= failureRecordRepository.count();
+        assertEquals(1, count);
+        assertEquals(1, failureRecordRepository.findAllByStatus("RETRY").size());
 
-        HashMap<String, Object> configs = new HashMap<>(KafkaTestUtils.consumerProps("group1", "true", embeddedKafkaBroker));
-        configs.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,"latest");
-        consumer = new DefaultKafkaConsumerFactory<>(configs,new IntegerDeserializer(),new StringDeserializer()).createConsumer();
-        embeddedKafkaBroker.consumeFromAnEmbeddedTopic(consumer,retryTopic);
-
-        ConsumerRecord<Integer,String> consumerRecord = KafkaTestUtils.getSingleRecord(consumer,retryTopic);
-
-        System.out.println("consumer record is: " + consumerRecord.value());
-        assertEquals(json,consumerRecord.value());
+        failureRecordRepository.findAll()
+                .forEach(failedRecord -> {
+                    System.out.println("Failure record : " + failedRecord);
+                });
     }
 }
